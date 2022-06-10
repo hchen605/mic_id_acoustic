@@ -28,6 +28,17 @@ Data recorded in large room:
 -	12 classes: in ‘crisp_record’ folder with distance specified.
 -	Mobile: in the Mobile_Recording folder, for each mobile phone folder, you will find the recordings in folder with distance specified. Ex: 5m_train/test
 
+### Most recent experiments: 4 class evaluation
+
+Train: train/dev_full_mobile_clo_4th.csv
+Test: test_full_mobile_clo_4th.csv
+
+Unseen device test:
+
+Train: train/dev_full_mobile_clo_4th_sp1.csv
+Test: test_full_mobile_clo_4th_sp1.csv
+
+
 
 ## Room size estimation
 
@@ -48,6 +59,10 @@ Note: dataset folder
 -	Small room data: the same as D1 deliverable 
 -	Large room data: in the ./crisp_record folder
 
+### Most recent experiments: Unseen room evaluation with real RIR augmentation
+
+Train: train/dev_room.csv
+Test: test_room_unseen.csv
 
 ## Distance Prediction
 
