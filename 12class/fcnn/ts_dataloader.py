@@ -10,6 +10,9 @@ from tqdm import tqdm
 import concurrent.futures
 from multiprocessing import Pool
 
+import os
+import sys
+
 sr = 16000 
 duration = 3
 
@@ -17,6 +20,9 @@ duration = 3
 def _load_data(data):
     wav, y_3, y_16 = data
     #print(wav)
+    if not os.path.exists(wav):
+        print("Warning: wav %s does not exist, skipped" % wav, file=sys.stderr)
+        return
     stereo, fs = sound.read(wav)
     #print(stereo.shape)
     #assert stereo.shape[0] > 0
@@ -50,7 +56,7 @@ def load_data(data_csv):
     datas = zip(wavpath, labels_3, labels_16)
 
     with Pool(32) as p:
-        return p.map(_load_data, datas)
+        return [i for i in p.map(_load_data, datas) if i is not None]
     
 
 def _load_data_rir(data):
