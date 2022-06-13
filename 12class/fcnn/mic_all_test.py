@@ -111,6 +111,7 @@ score = model.evaluate(x_test, y_test, verbose=0)
 print('--- Test loss:', score[0])
 print('- Test accuracy:', score[1])
 
+if not os.path.exists('record'): os.makedirs('record', exist_ok=True)
 file1 = open("./record/record_full_mobile_clo_class_{}_limit_{}.txt".format(args.nclass, args.limit), "a") 
   
 # writing newline character
