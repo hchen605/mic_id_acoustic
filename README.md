@@ -32,7 +32,7 @@ Data recorded in large room:
 ```
 wget https://github.com/AndreyGuzhov/ESResNeXt-fbsp/releases/download/v0.1/ESResNeXtFBSP_AudioSet.pt
 
-python -m visdom.server -port <PORT|8097>
+visdom -port <PORT|8097>
 cd ESResNeXt-fbsp
 python main.py --visdom-port <PORT|8097> --config protocols/mic_classificatoin/esresnextfbsp-mc-ptinas-cv1.json
 ```

@@ -1,4 +1,5 @@
 import os
+import sys
 import warnings
 import multiprocessing as mp
 
@@ -124,14 +125,15 @@ class ESC50(td.Dataset):
 
 class MicClassification(td.Dataset):
     def __init__(self,
-                root: str,
+                train_csv: str,
+                dev_csv: str,
                 label_type: str,
                 train: bool = True,
                 sample_rate: int = 44100,
                 transform=None,
                 target_transform=None):
         super(MicClassification, self).__init__()
-        self.root = root
+        self.root = train_csv if train else dev_csv
         self.train = train
         self.transform = transform
         self.target_transform = target_transform
@@ -144,6 +146,10 @@ class MicClassification(td.Dataset):
         self.indices = list(self.data.keys())
     @staticmethod
     def _load_worker(idx: int, filename: str, sample_rate: Optional[int] = None) -> Tuple[int, int, np.ndarray]:
+        if not os.path.exists(filename):
+            print("Warning: file %s does not exist, skipped..." % filename, file=sys.stderr)
+            return 0,0,np.zeros(0)
+
         wav, sample_rate = librosa.load(filename, sr=sample_rate, mono=True)
         if wav.ndim == 1: wav = wav[:, np.newaxis]
         wav = wav.T * 32768
@@ -165,6 +171,7 @@ class MicClassification(td.Dataset):
                     iterable=items_to_load,
                     chunksize=chunksize
             ):
+                if len(wav) == 0: continue
                 row = meta.loc[idx]
                 self.data[idx] = {
                     'audio': wav,
