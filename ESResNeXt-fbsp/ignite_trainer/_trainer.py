@@ -280,7 +280,7 @@ def run(experiment_name: str,
                 filename_prefix=visdom_env_name,
                 score_name=score_name,
                 score_function=get_score,
-                n_saved=3,
+                n_saved=1,
                 save_as_state_dict=True,
                 require_empty=False,
                 create_dir=True

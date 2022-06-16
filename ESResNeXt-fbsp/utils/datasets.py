@@ -131,7 +131,8 @@ class MicClassification(td.Dataset):
                 train: bool = True,
                 sample_rate: int = 44100,
                 transform=None,
-                target_transform=None):
+                target_transform=None,
+                limit=np.inf):
         super(MicClassification, self).__init__()
         self.root = train_csv if train else dev_csv
         self.train = train
@@ -139,6 +140,7 @@ class MicClassification(td.Dataset):
         self.target_transform = target_transform
         self.label_type = label_type
         self.sample_rate = sample_rate
+        self.limit = limit if train else np.inf
 
         self.label_to_index = dict()
         self.data = dict()
@@ -148,7 +150,7 @@ class MicClassification(td.Dataset):
     def _load_worker(idx: int, filename: str, sample_rate: Optional[int] = None) -> Tuple[int, int, np.ndarray]:
         if not os.path.exists(filename):
             print("Warning: file %s does not exist, skipped..." % filename, file=sys.stderr)
-            return 0,0,np.zeros(0)
+            return -1,-1,np.zeros(0)
 
         wav, sample_rate = librosa.load(filename, sr=sample_rate, mono=True)
         if wav.ndim == 1: wav = wav[:, np.newaxis]
@@ -158,9 +160,16 @@ class MicClassification(td.Dataset):
         meta = pd.read_csv(self.root, sep='\t')
         assert self.label_type in meta, \
             "Error: label_type %s isn't found. Need to be in %s" % (self.label_type, list(meta))
-        items_to_load = [(idx, row['filename'], self.sample_rate) for idx, row in meta.iterrows()]
-        label_set = set(meta[self.label_type].values)
+        label_set = sorted(set(meta[self.label_type].values))
         self.label_to_index = {label:idx for idx, label in enumerate(label_set)}
+
+        label_count = {label:0 for label in label_set}
+        items_to_load = []
+        for idx, row in meta.iterrows():
+            label = row[self.label_type]
+            if label_count[label] >= self.limit: continue
+            label_count[label] += 1
+            items_to_load.append((idx, row['filename'], self.sample_rate))
         
         warnings.filterwarnings("ignore")
         with mp.Pool(processes=mp.cpu_count()) as pool:
@@ -172,11 +181,14 @@ class MicClassification(td.Dataset):
                     chunksize=chunksize
             ):
                 if len(wav) == 0: continue
+                
                 row = meta.loc[idx]
+                target = self.label_to_index[row[self.label_type]]
+
                 self.data[idx] = {
                     'audio': wav,
                     'sample_rate': sample_rate,
-                    'target': self.label_to_index[row[self.label_type]]
+                    'target': target
                 }
 
     def __getitem__(self, index) -> Tuple[np.ndarray, int]:
