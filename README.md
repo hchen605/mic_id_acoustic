@@ -27,7 +27,7 @@ Data recorded in large room:
 - 12 classes: in `crisp_record` folder with distance specified.
 - Mobile: in the Mobile_Recording folder, for each mobile phone folder, you will find the recordings in folder with distance specified. Ex: 5m_train/test
 
-### ### ESResNe(X)t-fbsp
+### ESResNe(X)t-fbsp
 
 ##### Train
 
@@ -39,13 +39,11 @@ cd ESResNeXt-fbsp
 python main.py --visdom-port <PORT|8097> --config protocols/mic_classificatoin/esresnextfbsp-mc-ptinas-cv1.json
 ```
 
-### ##### Test
+##### Test
 
 ```bash
 python main.py --pretrained <path> --config protocols/mic_classificatoin/esresnextfbsp-mc-ptinas-test-cv1.json
 ```
-
-
 
 ### Most recent experiments: 4 class evaluation
 
