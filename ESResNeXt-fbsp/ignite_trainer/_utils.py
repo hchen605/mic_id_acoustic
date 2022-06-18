@@ -86,25 +86,27 @@ def get_data_loaders(Dataset: Type,
                      ]] = None,
                      transforms_test: Optional[Callable[
                          [Union[np.ndarray, torch.Tensor]], Union[np.ndarray, torch.Tensor]
-                     ]] = None) -> Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader]:
+                     ]] = None,
+                     eval_only: bool = False) -> Tuple[torch.utils.data.DataLoader, torch.utils.data.DataLoader]:
 
     dl_shuffle = dataset_args.pop('dl_shuffle', True)
-
-    dataset_mode_train = {dataset_args['training']['key']: dataset_args['training']['yes']}
+    if not eval_only:
+      dataset_mode_train = {dataset_args['training']['key']: dataset_args['training']['yes']}
+      dataset_args_train = {**{k: v for k, v in dataset_args.items() if k != 'training'}, **dataset_mode_train}
+      ds_train = Dataset(**{**dataset_args_train, **{'transform': transforms_train}})
+      train_loader = torch.utils.data.DataLoader(
+          ds_train,
+          batch_size=batch_train,
+          shuffle=dl_shuffle,
+          num_workers=workers_train,
+          pin_memory=True,
+          drop_last=((len(ds_train) % batch_train) == 1)
+      )
+    else: train_loader = torch.utils.data.DataLoader([])
+    
     dataset_mode_test = {dataset_args['training']['key']: dataset_args['training']['no']}
-
-    dataset_args_train = {**{k: v for k, v in dataset_args.items() if k != 'training'}, **dataset_mode_train}
     dataset_args_test = {**{k: v for k, v in dataset_args.items() if k != 'training'}, **dataset_mode_test}
 
-    ds_train = Dataset(**{**dataset_args_train, **{'transform': transforms_train}})
-    train_loader = torch.utils.data.DataLoader(
-        ds_train,
-        batch_size=batch_train,
-        shuffle=dl_shuffle,
-        num_workers=workers_train,
-        pin_memory=True,
-        drop_last=((len(ds_train) % batch_train) == 1)
-    )
     ds_eval = Dataset(**{**dataset_args_test, **{'transform': transforms_test}})
     eval_loader = torch.utils.data.DataLoader(
         ds_eval,

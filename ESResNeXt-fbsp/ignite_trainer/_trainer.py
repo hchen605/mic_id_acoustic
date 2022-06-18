@@ -70,7 +70,8 @@ def run(experiment_name: str,
         model_suffix: Optional[str] = None,
         setup_suffix: Optional[str] = None,
         orig_stdout: Optional[io.TextIOBase] = None,
-        skip_train_val: bool = False):
+        skip_train_val: bool = False,
+        eval_only: bool = False):
 
     with _utils.tqdm_stdout(orig_stdout) as orig_stdout:
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -105,7 +106,8 @@ def run(experiment_name: str,
             workers_train,
             workers_test,
             transforms_train,
-            transforms_test
+            transforms_test,
+            eval_only=eval_only
         )
 
         Network: Type = _utils.load_class(model_class)
@@ -113,19 +115,17 @@ def run(experiment_name: str,
         model = torch.nn.DataParallel(model, device_ids=range(torch.cuda.device_count()))
         model = model.to(device)
 
-        Optimizer: Type = _utils.load_class(optimizer_class)
-        optimizer: torch.optim.Optimizer = Optimizer(model.parameters(), **optimizer_args)
+        scheduler = None
+        if not eval_only:
+            Optimizer: Type = _utils.load_class(optimizer_class)
+            optimizer: torch.optim.Optimizer = Optimizer(model.parameters(), **optimizer_args)
+            if scheduler_class is not None:
+                Scheduler: Type = _utils.load_class(scheduler_class)
 
-        if scheduler_class is not None:
-            Scheduler: Type = _utils.load_class(scheduler_class)
+                if scheduler_args is None:
+                    scheduler_args = dict()
 
-            if scheduler_args is None:
-                scheduler_args = dict()
-
-            scheduler: Optional[torch.optim.lr_scheduler._LRScheduler] = Scheduler(optimizer, **scheduler_args)
-        else:
-            scheduler = None
-
+                scheduler: Optional[torch.optim.lr_scheduler._LRScheduler] = Scheduler(optimizer, **scheduler_args)
         model_short_name = ''.join([c for c in Network.__name__ if c == c.upper()])
         model_name = '{}{}'.format(
             model_short_name,
@@ -138,11 +138,12 @@ def run(experiment_name: str,
             '-{}'.format(setup_suffix) if setup_suffix is not None else ''
         )
 
-        vis, vis_pid = _visdom.get_visdom_instance(visdom_host, visdom_port, visdom_env_name, visdom_env_path)
+        if not eval_only:
+            vis, vis_pid = _visdom.get_visdom_instance(visdom_host, visdom_port, visdom_env_name, visdom_env_path)
 
-        prog_bar_epochs = tqdm.tqdm(total=epochs, desc='Epochs', file=orig_stdout, dynamic_ncols=True, unit='epoch')
-        prog_bar_iters = tqdm.tqdm(desc='Batches', file=orig_stdout, dynamic_ncols=True)
-
+        if not eval_only:
+            prog_bar_epochs = tqdm.tqdm(total=epochs, desc='Epochs', file=orig_stdout, dynamic_ncols=True, unit='epoch')
+            prog_bar_iters = tqdm.tqdm(desc='Batches', file=orig_stdout, dynamic_ncols=True)
         tqdm.tqdm.write(f'\n{repr(model)}\n')
         tqdm.tqdm.write('Total number of parameters: {:.2f}M'.format(sum(p.numel() for p in model.parameters()) / 1e6))
 
@@ -178,18 +179,21 @@ def run(experiment_name: str,
 
             return y_pred, y
 
-        trainer = ieng.Engine(training_step)
-        validator_train = ieng.Engine(eval_step)
+        if not eval_only:
+            trainer = ieng.Engine(training_step)
+            validator_train = ieng.Engine(eval_step)
         validator_eval = ieng.Engine(eval_step)
 
+
         # placeholder for summary window
-        vis.text(
-            text='',
-            win=experiment_name,
-            env=visdom_env_name,
-            opts={'title': 'Summary', 'width': 940, 'height': 416},
-            append=vis.win_exists(experiment_name, visdom_env_name)
-        )
+        if 'vis' in locals():
+            vis.text(
+                text='',
+                win=experiment_name,
+                env=visdom_env_name,
+                opts={'title': 'Summary', 'width': 940, 'height': 416},
+                append=vis.win_exists(experiment_name, visdom_env_name)
+            )
 
         default_metrics = {
             "Loss": {
@@ -207,7 +211,7 @@ def run(experiment_name: str,
                     },
                     {
                         "line_label": "Val.",
-                        "train": not skip_train_val,
+                        "train": not skip_train_val and not eval_only,
                         "object": imet.Loss(model.loss_fn if not isinstance(model, torch.nn.DataParallel) else model.module.loss_fn)
                     }
                 ]
@@ -228,14 +232,14 @@ def run(experiment_name: str,
 
                 line['update_rate'] = line.get('update_rate', 'epoch')
                 line_suffixes = list()
-                if line['update_rate'] == 'iteration':
+                if line['update_rate'] == 'iteration' and not eval_only:
                     line['object'].attach(trainer, line['metric_label'])
                     line['train'] = False
                     line['test'] = False
 
                     line_suffixes.append(' Train.')
 
-                if line.get('train', True):
+                if line.get('train', True) and not eval_only:
                     line['object'].attach(validator_train, line['metric_label'])
                     line_suffixes.append(' Train.')
                 if line.get('test', True):
@@ -245,18 +249,26 @@ def run(experiment_name: str,
                     if line.get('is_checkpoint', False):
                         checkpoint_metrics.append(line['metric_label'])
 
-                for line_suffix in line_suffixes:
-                    _visdom.plot_line(
-                        vis=vis,
-                        window_name=scope['window_name'],
-                        env=visdom_env_name,
-                        line_label=line['line_label'] + line_suffix,
-                        x_label=scope['x_label'],
-                        y_label=scope['y_label'],
-                        width=scope['width'],
-                        height=scope['height'],
-                        draw_marker=(line['update_rate'] == 'epoch')
-                    )
+                if 'vis' in locals():
+                    for line_suffix in line_suffixes:
+                        _visdom.plot_line(
+                            vis=vis,
+                            window_name=scope['window_name'],
+                            env=visdom_env_name,
+                            line_label=line['line_label'] + line_suffix,
+                            x_label=scope['x_label'],
+                            y_label=scope['y_label'],
+                            width=scope['width'],
+                            height=scope['height'],
+                            draw_marker=(line['update_rate'] == 'epoch')
+                        )
+        if eval_only:
+            state = validator_eval.run(eval_loader)
+            for key, value in state.metrics.items():
+                print("%s %s" % (key, value))
+
+            del eval_loader
+            return
 
         if checkpoint_metrics:
             score_name = 'performance'
@@ -464,6 +476,7 @@ def main():
         parser.add_argument('-R', '--random-seed', type=int, required=False)
         parser.add_argument('-s', '--suffix', type=str, required=False)
         parser.add_argument('-S', '--skip-train-val', action='store_true', default=False)
+        parser.add_argument('-p', '--pretrained', type=str, default='')
 
         args, unknown_args = parser.parse_known_args()
 
@@ -600,12 +613,14 @@ def main():
             saved_models_path = _utils.arg_selector(
                 args.saved_models_path, config['Setup']['saved_models_path'], SAVED_MODELS_PATH
             )
+            eval_only = config['Setup'].get('eval_only', False)
 
             model_class = config['Model']['class']
             model_args = config['Model']['args']
 
-            optimizer_class = config['Optimizer']['class']
-            optimizer_args = config['Optimizer']['args']
+            default_optimer = {'class':'', 'args':{}}
+            optimizer_class = config.get('Optimizer', default_optimer)['class']
+            optimizer_args = config.get('Optimizer', default_optimer)['args']
 
             if 'Scheduler' in config:
                 scheduler_class = config['Scheduler']['class']
@@ -621,6 +636,9 @@ def main():
             performance_metrics = config['Metrics']
 
             tqdm.tqdm.write(f'\nStarting experiment "{experiment_name}"\n')
+
+            if args.pretrained != '':
+                model_args['pretrained'] = args.pretrained
 
             run(
                 experiment_name=experiment_name,
@@ -647,7 +665,8 @@ def main():
                 model_suffix=config['Setup']['suffix'],
                 setup_suffix=args.suffix,
                 orig_stdout=orig_stdout,
-                skip_train_val=args.skip_train_val
+                skip_train_val=args.skip_train_val,
+                eval_only=eval_only
             )
 
         prog_bar_exps.close()

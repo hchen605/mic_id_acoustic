@@ -20,6 +20,8 @@ from typing import Tuple
 from typing import Union
 from typing import Optional
 
+import re
+
 
 def conv3x3(in_planes: int, out_planes: int, stride=1, groups: int = 1, dilation: Union[int, Tuple[int, int]] = 1):
     """3x3 convolution with padding"""
@@ -526,7 +528,10 @@ class _ESResNet(ResNetWithAttention):
             state_dict = self.loading_func(pretrained=True).state_dict()
         else:
             state_dict = torch.load(self.pretrained, map_location='cpu')
-
+        
+        replacer = re.compile('^module.')
+        state_dict = {replacer.sub('',k):v for k,v in state_dict.items()}
+        
         err_msg = ''
         try:
             self.load_state_dict(state_dict=state_dict, strict=True)
