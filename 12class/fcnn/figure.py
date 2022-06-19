@@ -61,19 +61,19 @@ if __name__ == '__main__':
     get_filename_prefix = lambda prefix: [os.path.join(args.log_dir_in, i) \
         for i in os.listdir(args.log_dir_in) if i.startswith(prefix)]
     train_log_3 = [parse_train_log(i) for i in get_filename_prefix('train.0')]
-    train_log_12 = [parse_train_log(i) for i in get_filename_prefix('train.1')]
+    train_log_18 = [parse_train_log(i) for i in get_filename_prefix('train.1')]
     test_log_3 = [parse_test_log(i) for i in get_filename_prefix('test.0')]
-    test_log_12 = [parse_test_log(i) for i in get_filename_prefix('test.1')]
+    test_log_18 = [parse_test_log(i) for i in get_filename_prefix('test.1')]
 
     os.makedirs(args.figure_dir_out, exist_ok=True)
     fig = plot_history(train_log_3, test_log_3)
-    fig.suptitle('History of 3 class classification\n' + fig._suptitle.get_text())
+    fig.suptitle('History of 3 classes classification\n' + fig._suptitle.get_text())
     fig.tight_layout()
     fig.set_size_inches((8,4))
     fig.savefig(os.path.join(args.figure_dir_out, "history_3class.png"))
     
-    fig = plot_history(train_log_12, test_log_12)
-    fig.suptitle('History of 12 class classification\n' + fig._suptitle.get_text())
+    fig = plot_history(train_log_18, test_log_18)
+    fig.suptitle('History of 18 classes classification\n' + fig._suptitle.get_text())
     fig.tight_layout()
     fig.set_size_inches((8,4))
-    fig.savefig(os.path.join(args.figure_dir_out, "history_12class.png"))
+    fig.savefig(os.path.join(args.figure_dir_out, "history_18class.png"))
