@@ -2,6 +2,7 @@ import os
 import sys
 import warnings
 import multiprocessing as mp
+import random
 
 import msgpack_numpy as m
 
@@ -163,13 +164,18 @@ class MicClassification(td.Dataset):
         label_set = sorted(set(meta[self.label_type].values))
         self.label_to_index = {label:idx for idx, label in enumerate(label_set)}
 
-        label_count = {label:0 for label in label_set}
+        label2item = {label:[] for label in self.label_to_index}
         items_to_load = []
         for idx, row in meta.iterrows():
             label = row[self.label_type]
-            if label_count[label] >= self.limit: continue
-            label_count[label] += 1
-            items_to_load.append((idx, row['filename'], self.sample_rate))
+            label2item[label].append((idx, row['filename'], self.sample_rate))
+        items_to_load = []
+        for label, item in label2item.items():
+            random.shuffle(item)
+            if self.limit != np.inf:
+                item = item[:self.limit]
+            items_to_load.extend(item)
+        random.shuffle(items_to_load)
         
         warnings.filterwarnings("ignore")
         with mp.Pool(processes=mp.cpu_count()) as pool:
