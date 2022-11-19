@@ -6,7 +6,7 @@
   },
   "Setup": {
     "name": "PTINAS",
-    "suffix": "room",
+    "suffix": "room_nb_2k",
     "batch_train": 16,
     "batch_test": 16,
     "workers_train": 4,
@@ -49,10 +49,11 @@
   "Dataset": {
     "class": "utils.datasets.MicClassification",
     "args": {
-      "train_csv": "../12class/data/train_room.csv",
-      "dev_csv": "../12class/data/dev_room.csv",
+      "train_csv": "/home/hsinhung/mic_acoustic/12class/data/train_room.csv",
+      "dev_csv": "/home/hsinhung/mic_acoustic/12class/data/dev_room.csv",
       "label_type": "3_types",
       "sample_rate": 44100,
+      "limit": 150,
       "training": {"key": "train", "yes": true, "no": false}
     }
   },

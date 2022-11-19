@@ -12,7 +12,9 @@ from utils import *
 from funcs import *
 
 from ts_dataloader import *
-from models.small_fcnn_att import model_fcnn
+from models.small_fcnn_att import model_fcnn, model_fcnn_pre
+from models.xvector import model_xvector
+from models.attRNN import AttRNN, AttRNN_pre
 
 from tensorflow.compat.v1 import ConfigProto, InteractiveSession
 
@@ -41,8 +43,9 @@ config.gpu_options.allow_growth = True
 session = InteractiveSession(config=config)
 
 # +
-classes_3 = ['C','D','M']
-classes_12 = ['C1','C2','C3','C4','D1','D2','D3','D4','D5','M1','M2','M3','M4','M5','M6','M7','M8','M9']
+classes_3 = ['C','D','M','P']
+classes_12 = ['C1','C2','C3','C4','D1','D2','D3','D4','D5','M1','M2','M3','P1','P2','P3','P4','P5','P6']
+
 genders = ['full', 'female', 'male']
 classes_room = ['large','medium','small']
 
@@ -57,7 +60,9 @@ else:
     classes_test = classes_12
 
 
-test_csv = '../data/test_full_mobile_clo.csv'
+#test_csv = '../data/test_full_mobile_clo_4th_dist.csv'
+#test_csv = '../data/test_full_mobile_clo_4th_sp1_test.csv'
+test_csv = '../data/test_mic_small_1m.csv'
 
 
 
@@ -93,10 +98,15 @@ num_freq_bin = 128
 num_audio_channels = 1
 batch_size = 32
 epochs = args.eps
+input_length = 48000
 
 # Model
 model = model_fcnn(num_classes, input_shape=[num_freq_bin, None, num_audio_channels], num_filters=[24, 48, 96], wd=0)
-weights_path = 'weight/weight_full_mobile_limit{}_seed{}_test/'.format(args.limit, args.seed)+ experiments + "best.hdf5"
+#model = model_xvector(num_classes)
+#model = AttRNN(num_classes, input_length)
+#model = AttRNN_pre(num_classes, input_length)
+
+weights_path = 'weight/weight_full_mobile_limit{}_seed{}_unseen/'.format(args.limit, args.seed)+ experiments + "best.hdf5"
 model.load_weights(weights_path)
 
 model.compile(loss='categorical_crossentropy',
@@ -111,27 +121,31 @@ score = model.evaluate(x_test, y_test, verbose=0)
 print('--- Test loss:', score[0])
 print('- Test accuracy:', score[1])
 
-if not os.path.exists('record'): os.makedirs('record', exist_ok=True)
-file1 = open("./record/record_full_mobile_clo_class_{}_limit_{}.txt".format(args.nclass, args.limit), "a") 
+
+file1 = open("./record/record_mic_{}_limit_{}_unseen_small_1m.txt".format(args.nclass, args.limit), "a") 
   
 # writing newline character
 file1.write("\n")
 file1.write(str(score[1]))
 file1.close()
 
-'''
+
+
 #confusion matrix
 y_pred = model.predict(x_test)
 y_test_ = np.argmax(y_test, axis=-1)
 y_pred_ = np.argmax(y_pred, axis=-1)
-
+#print(y_test_)
+#print(y_pred_)
 
 cm = confusion_matrix(y_test_, y_pred_)
+#print(cm)
 
-disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=classes)
+classes_12 = ['C1','C2','C3','C4','D1','D2','D3','D4','D5','M1','M3','P1','P2','P3','P4','P5','P6']
+#disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=classes)
+disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=classes_12)
 disp.plot(cmap=plt.cm.Blues)
 plt.title('Microphone Classification')
 plt.show()
 #plt.savefig('./music_log/cm_{}_{}.pdf'.format(mic,target))
-plt.savefig('./confusion/cm_full_mobile_clo_class_{}_limit_{}_seed_{}.pdf'.format(args.nclass, args.limit, args.seed))
-'''
+plt.savefig('./confusion/cm_full_mobile_class_{}_limit_{}_seed_{}_unseen_small_1m.pdf'.format(args.nclass, args.limit, args.seed))

@@ -8,7 +8,7 @@
     "name": "PTINAS",
     "suffix": "MC",
     "batch_train": null,
-    "batch_test": 16,
+    "batch_test": 200,
     "workers_train": null,
     "workers_test": 4,
     "epochs": null,
@@ -28,7 +28,8 @@
       "spec_height": -1,
       "spec_width": -1,
       "num_classes": 18,
-      "apply_attention": true
+      "apply_attention": true,
+      "pretrained": "/home/hsinhung/mic_acoustic/ESResNeXt-fbsp/weights/MicClassification_PTINAS_ESRNXFBSP-mic_nb_2k_train_5/best.pth"
     }
   },
   "Scheduler": {
@@ -41,7 +42,7 @@
     "class": "utils.datasets.MicClassification",
     "args": {
       "train_csv": "",
-      "dev_csv": "../12class/data/test_full_mobile_clo.csv",
+      "dev_csv": "../12class/data/test_full_mobile_clo_4th.csv",
       "label_type": "16_types",
       "sample_rate": 44100,
       "training": {"key": "train", "yes": true, "no": false}

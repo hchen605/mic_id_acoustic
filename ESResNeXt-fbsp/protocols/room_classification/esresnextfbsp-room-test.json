@@ -29,7 +29,7 @@
       "spec_width": -1,
       "num_classes": 3,
       "apply_attention": true,
-      "pretrained": "/home/hsinhung/mic_acoustic/ESResNeXt-fbsp/weights/MicClassification_PTINAS_ESRNXFBSP-room/MicClassification_PTINAS_ESRNXFBSP-room_ESRNXFBSP-room_performance=1.0.pth"
+      "pretrained": "/home/mic_id_acoustic/ESResNeXt-fbsp/weights/MicClassification_PTINAS_ESRNXFBSP-room_nb_2k/best.pth"
     }
   },
   "Scheduler": {
@@ -42,7 +42,7 @@
     "class": "utils.datasets.MicClassification",
     "args": {
       "train_csv": "",
-      "dev_csv": "../12class/data/test_room_unseen.csv",
+      "dev_csv": "/home/mic_id_acoustic/12class/data/test_room_unseen.csv",
       "label_type": "3_types",
       "sample_rate": 44100,
       "training": {"key": "train", "yes": true, "no": false}

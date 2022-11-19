@@ -33,12 +33,6 @@ def _load_data(data):
     if fs != sr:
         stereo = librosa.resample(stereo, fs, sr)
         
-    #assert stereo.shape[0] > 16000
-    #noise only
-    #orig_shape = stereo.shape
-    #assert orig_shape[0] > 16000
-    #trimmed, index = librosa.effects.trim(stereo, top_db=20)
-    #stereo = np.concatenate((stereo[0:index[0]], stereo[index[1]:-1]))
 
     if stereo.shape[0] > sr*duration:
         start = (stereo.shape[0] - sr*duration) // 2

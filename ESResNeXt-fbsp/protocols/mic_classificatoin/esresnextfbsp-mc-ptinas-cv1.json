@@ -6,12 +6,12 @@
   },
   "Setup": {
     "name": "PTINAS",
-    "suffix": "MC",
+    "suffix": "mic_nb_2k_train_5",
     "batch_train": 16,
     "batch_test": 16,
     "workers_train": 4,
     "workers_test": 4,
-    "epochs": 160,
+    "epochs": 100,
     "log_interval": 10,
     "saved_models_path": "weights"
   },
@@ -28,7 +28,7 @@
       "spec_width": -1,
       "num_classes": 18,
       "apply_attention": true,
-      "pretrained": "weights/ESResNeXtFBSP_AudioSet.pt"
+      "pretrained": "assets/ESResNeXtFBSP_AudioSet.pt"
     }
   },
   "Optimizer": {
@@ -49,11 +49,11 @@
   "Dataset": {
     "class": "utils.datasets.MicClassification",
     "args": {
-      "train_csv": "../12class/data/train_full_mobile_clo.csv",
-      "dev_csv": "../12class/data/dev_full_mobile_clo.csv",
+      "train_csv": "../12class/data/train_full_mobile_clo_4th.csv",
+      "dev_csv": "../12class/data/dev_full_mobile_clo_4th.csv",
       "label_type": "16_types",
       "sample_rate": 44100,
-      "limit": 5,
+      "limit": 100,
       "training": {"key": "train", "yes": true, "no": false}
     }
   },
