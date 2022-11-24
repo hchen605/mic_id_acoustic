@@ -1,7 +1,5 @@
 # mic_id_acoustic
 
-Please install the environment with the `repr.yml`
-
 ## Docker env setup
 
 #### Step 1: build docker environment
@@ -15,6 +13,11 @@ docker build -t hchen605/mic_id_acoustic .
 ```bash
 docker run --shm-size=1g -v <dataset_path>:/home/speech -it --rm --privileged --gpus all -w /home/mic_id_acoustic hchen605/mic_id_acoustic:latest
 ```
+
+Please place the dataset folders, crisp_record, crisp_phase3, Mobile_Recording, and all D1 close-field data in the same <dataset_path>.
+
+
+*Env back-up: You can first follow the Docker flow shown in the GitHub repo. Below is the back-up flow for stand alone conda env setup with the `repr.yml` (AttCNN) and `clip.yml` (ESResNeXt).
 
 
 ## Microphone Classification
