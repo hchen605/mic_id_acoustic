@@ -39,7 +39,7 @@ Data recorded in small room (close-field):
 
 Data recorded in large room (different distances):
 
-- 12 mic classes: in `crisp_record` folder with distance specified.
+- 12 mic classes: In `crisp_record` folder with distance specified. `crisp_phase3`
 - Mobile data: in the Mobile_Recording folder, for each mobile phone folder, you will find the recordings in folder with distance specified. Ex: 5m_train/test
 
 ### ESResNe(X)t-fbsp
@@ -62,6 +62,8 @@ python main.py --visdom-port <PORT|8097> --config protocols/mic_classificatoin/e
 ```bash
 python main.py --pretrained <path> --config protocols/mic_classificatoin/esresnextfbsp-mc-ptinas-test-cv1.json
 ```
+You can load the weight (from provided or result from training) at the Model args ‘pretrained’. The pre-trained weights can be found in `./ESResNeXt-fbsp/weights/`. For example, the `./mic_18class_5` means the weight for 18-class evaluation with low-resource 5 data per class.
+
 
 ### 4 class evaluation (mobile data as the 4th class)
 
@@ -85,6 +87,10 @@ The first one is the training process which will apply IM loss and include updat
 
 Note: Please check in `./data/` for the relevant .csv files. The model is pre-trained by split 1 configuration, referring to the `train/dev_ full_mobile_4th_sp1.csv`. Then the model is fine-tuned with IM loss and the updated pseudo labels (`./data/ood/pseudo_update_4.py`). And then evaluated with `test_full_mobile_4th_sp1.csv` to get the refined result.
 
+The pre-trained weight for the domain adaptation can be found in `./weight/domainAdapt_imloss/`. You may apply this weight to evaluate the unseen device data.(The raw pre-trained weight for 4 class without domain adaptation is in `./split1_pretrain_4class`.)
+
+
+
 ### Out-of-Domain Detection (OOD detection)
 
 #### AttCNN:
@@ -99,6 +105,8 @@ test_csv_2 = '../data/ood/test_full_mobile_clo_4th_abstention_p_dev.csv'
 ```
 
 Note: Please check in `./data/ood` for the collected .csv file. Take config.2 for example, the training data is the `train_full_mobile_4th_abstention_p_trial_p1_dev.csv`, which includes the P1 as the ID data and P2-4 as OOD data. The validation set is of the `dev_full_mobile_4th_abstention_p_trial_p1_dev.csv`, also including P1 as the ID data and P2-4 as OOD data. The test data is of the `test_full_mobile_4th_abstention_p_trial_p1_dev_.csv`, which is the test ID data. And `test_full_mobile_4th_sp1_p.csv` is the test OOD data (P5-6). You can also find the data collection of config.1 with the post-fix like ‘p1p2’ and ‘p3p4’. 
+
+The pre-trained weights can be found in the ./fcnn/weight/ directory. For example, the ./ood_p1_id is the weight for P1 split for config.2.
 
 
 ## Room size estimation
@@ -135,12 +143,13 @@ Since some RIR will last longer period, the output audio length will not be cons
 
 You may find the code in the `./ESResNeXt-fbsp directory`. To setup the parameters, please find the file in `./protocols/room_classification/*.json` files. 
 
-The pre-trained weight can be found in `weights/MicClassification_PTINAS_ESRNXFBSP-room/best.pth`
 
 You can directly run the command to get the result: 
 
 ```CUDA_VISIBLE_DEVICES=$N python main.py –config protocols/room_classification/esresnextfbsp-room-test.json```
 
+The pre-trained weight can be found in `./ESResNeXt-fbsp/weights/room/best.pth`
+You may load this weight in the test json file and run the evaluation directly.
 
 ## Distance Prediction
 
