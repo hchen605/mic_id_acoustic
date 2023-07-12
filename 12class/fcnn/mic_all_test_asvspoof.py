@@ -12,7 +12,7 @@ from utils import *
 from funcs import *
 
 from ts_dataloader import *
-from models.small_fcnn_att import model_fcnn, model_fcnn_pre
+from models.small_fcnn_att import model_fcnn
 from models.xvector import model_xvector
 from models.attRNN import AttRNN, AttRNN_pre
 
@@ -20,11 +20,13 @@ from tensorflow.compat.v1 import ConfigProto, InteractiveSession
 
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import ConfusionMatrixDisplay
+from scipy.stats import entropy
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--gender", type=int, default=0, help="full (0), female(1), male (2)")
 parser.add_argument("--nclass", type=int, default=0, help="3class (0), 12class(1)")
-parser.add_argument("--limit", type=int, default=400, help="number of data")
+parser.add_argument("--limit", type=int, default=100, help="number of data")
 parser.add_argument("--seed", type=int, default=0, help="data random seed")
 parser.add_argument("--eps", type=int, default=30, help="number of epochs")
 args = parser.parse_args()
@@ -43,9 +45,9 @@ config.gpu_options.allow_growth = True
 session = InteractiveSession(config=config)
 
 # +
-classes_3 = ['C','D','M','P']
-classes_12 = ['C1','C2','C3','C4','D1','D2','D3','D4','D5','M1','M2','M3','P1','P2','P3','P4','P5','P6']
-
+#classes_3 = ['C','D','M','P']
+classes_3 = ['P','X']
+classes_12 = ['P1','P2','X']
 genders = ['full', 'female', 'male']
 classes_room = ['large','medium','small']
 
@@ -60,14 +62,19 @@ else:
     classes_test = classes_12
 
 
-test_csv = '../data/test_full_mobile_clo_4th_dist.csv'
-#test_csv = '../data/test_full_mobile_clo_apple_samsung_2.csv'
-#test_csv = '../data/test_mic_small_1m.csv'
+test_csv = '../data/ood/test_asvspoof_few.csv'
+#test_csv_id = '../data/ood/test_asvspoof_p_id.csv'
+test_csv_id = '../data/ood/test_full_mobile_clo_4th_abstention_p1_dev_.csv'
+dev_csv = '../data/ood/dev_asvspoof_abstention_p.csv'
+
+#test_csv = '../data/test_full_mobile_clo_4th_sp1_test.csv'
 
 
 
 print('loading microphone data')
 test = load_data(test_csv)
+test_id = load_data(test_csv_id)
+dev = load_data(dev_csv)
 
 print ("=== Number of test data: {}".format(len(test)))
 
@@ -75,6 +82,11 @@ print ("=== Number of test data: {}".format(len(test)))
 x_test, y_test_3, y_test_12 = list(zip(*test))
 x_test = np.array(x_test)
 
+x_test_id, y_test_3_2, y_test_12_2 = list(zip(*test_id))
+x_test_id = np.array(x_test_id)
+
+x_dev, y_test_3_3, y_test_12_3 = list(zip(*dev))
+x_dev = np.array(x_dev)
 
 
 if args.nclass == 0:
@@ -102,13 +114,9 @@ input_length = 48000
 
 # Model
 model = model_fcnn(num_classes, input_shape=[num_freq_bin, None, num_audio_channels], num_filters=[24, 48, 96], wd=0)
-#model = model_xvector(num_classes)
-#model = AttRNN(num_classes, input_length)
-#model = AttRNN_pre(num_classes, input_length)
 
-#weights_path = 'weight/weight_full_mobile_limit{}_seed{}_18class_iphone_rir_to_others_clo/'.format(args.limit, args.seed)+ experiments + "best.hdf5"
-weights_path = 'weight/weight_18class_test_dist_student/'+ experiments + "best.hdf5"
-#weights_path = 'weight/weight_full_mobile_limit400_seed0_mic_18class_5m_7m_9m_rir_0p66_clo/'+ experiments + "best.hdf5"
+
+weights_path = 'weight/weight_asvspoof_abstention_p1p2_id/' + "best.hdf5"
 model.load_weights(weights_path)
 
 model.compile(loss='categorical_crossentropy',
@@ -118,37 +126,72 @@ model.compile(loss='categorical_crossentropy',
 
 model.summary()
 
-
+'''
 score = model.evaluate(x_test, y_test, verbose=0)
 print('--- Test loss:', score[0])
 print('- Test accuracy:', score[1])
 
-
-#file1 = open("./record/record_mic_{}_limit_{}_mic_rir.txt".format(args.nclass, args.limit), "a") 
+file1 = open("./record/record_full_mobile_clo_class_{}_limit_{}_asvspoof.txt".format(args.nclass, args.limit), "a") 
   
 # writing newline character
-#file1.write("\n")
-#file1.write(str(score[1]))
-#file1.close()
-
-
+file1.write("\n")
+file1.write(str(score[1]))
+file1.close()
+'''
 
 #confusion matrix
+#np.save('../data/ood/test_p_abstention.npy',y_test)
 y_pred = model.predict(x_test)
+y_pred_c = np.squeeze(y_pred)
+#print(y_pred_c)
+#print(y_pred_c.shape)
+np.save('../data/ood/test_asvspoof_in_p2_abstention_few_label.npy',y_pred_c[:,1])
+#print(y_pred_c[:,1])
+#print(np.mean(y_pred_c[:,1]))
+
+y_ood = y_pred_c[:,2]
+
 y_test_ = np.argmax(y_test, axis=-1)
 y_pred_ = np.argmax(y_pred, axis=-1)
-#print(y_test_)
-#print(y_pred_)
-'''
-cm = confusion_matrix(y_test_, y_pred_)
-#print(cm)
 
-classes_12 = ['C1','C2','C3','C4','D1','D2','D3','D4','D5','M1','M2','M3','P1','P2','P3','P4','P5','P6']
-#disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=classes)
-disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=classes_12)
-disp.plot(cmap=plt.cm.Blues)
-plt.title('Microphone Classification')
-plt.show()
-#plt.savefig('./music_log/cm_{}_{}.pdf'.format(mic,target))
-plt.savefig('./confusion/cm_full_mobile_class_{}_limit_{}_seed_{}_samsung_iphone_rir_pre_2000_clo_10.pdf'.format(args.nclass, args.limit, args.seed))
+y_pred = model.predict(x_test_id)
+y_pred_c = np.squeeze(y_pred)
+#print(y_pred_c)
+#print(y_pred_c.shape)
+#np.save('../data/ood/test_asvspoof_p1_in_p1p2_abstention_id.npy',y_pred_c[:,2])
+#print(y_pred_c[:,2])
+#print(np.mean(y_pred_c[:,2]))
+
+y_id = y_pred_c[:,2]
+
+
 '''
+y_pred = model.predict(x_dev)
+y_pred_c = np.squeeze(y_pred)
+#print(y_pred_c)
+print(y_pred_c.shape)
+np.save('../data/ood/dev_asvspoof_p_abstention_ood.npy',y_pred_c[:,0])
+'''
+
+scores = np.array(
+    np.concatenate([
+     #np.max(y_id,axis=-1),
+     #np.max(y_ood,axis=-1),
+     y_id,
+     y_ood,
+    ],axis=0)
+)
+
+onehots = np.array(
+    [0]*len(y_id)+[1]*len(y_ood)
+)
+
+auroc, to_replot_dict = get_auroc(
+    onehots, 
+    scores, 
+    make_plot=True,
+    add_to_title="ViT-L_16 on CIFAR-100 vs CIFAR-10\nMax of Softmax Probs",
+    swap_classes=True,
+    )
+
+print('auroc: ', auroc)
