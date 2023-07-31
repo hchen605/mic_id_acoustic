@@ -60,7 +60,7 @@ else:
     classes_test = classes_12
 
 
-test_csv = '../data/test_full_mobile_clo_4th_dist.csv'
+test_csv = '../data/test_mic_unseen.csv'
 #test_csv = '../data/test_full_mobile_clo_apple_samsung_2.csv'
 #test_csv = '../data/test_mic_small_1m.csv'
 
