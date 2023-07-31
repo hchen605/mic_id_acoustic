@@ -92,7 +92,13 @@ Note: Please check in `./data/` for the relevant .csv files. The model is pre-tr
 
 The pre-trained weight for the domain adaptation can be found in `./weight/domainAdapt_imloss/`. You may apply this weight to evaluate the unseen device data.(The raw pre-trained weight for 4 class without domain adaptation is in `./split1_pretrain_4class`.)
 
+### Unseen room/distance Evaluation
 
+Please run the following command:
+```bash
+source run_teacher_student.sh
+```
+This will automatically run the `mic_all_train_teacher.py` to train the teacher-student model and run `mic_all_test.py` for evaluation.
 
 ### Out-of-Domain Detection (OOD detection)
 
