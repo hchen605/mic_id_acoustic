@@ -8,8 +8,9 @@ from tensorflow.keras import models
 import tensorflow.keras.backend as K
 from kapre.time_frequency import Melspectrogram, Spectrogram
 from kapre.utils import Normalization2D
+import audiomentations as A
 
-from models.attention_layer import channel_attention
+from models.attention_layer import channel_attention, channel_attention_do
 
 def resnet_layer(inputs,num_filters=16,kernel_size=3,strides=1,learn_bn = True,wd=1e-4,use_relu=True):
     x = inputs
@@ -137,17 +138,19 @@ def model_fcnn(num_classes, input_shape=None, num_filters=[24, 48, 96], wd=1e-3)
 
     OutputPath = BatchNormalization(center=False, scale=False)(OutputPath)
     OutputPath = channel_attention(OutputPath, ratio=2)
-    OutputPath = GlobalAveragePooling2D()(OutputPath)
-    OutputPath = Activation('softmax')(OutputPath)
+    OutputPath_1 = GlobalAveragePooling2D()(OutputPath)
+    OutputPath = Activation('softmax')(OutputPath_1)
 
+    #model_lat = Model(inputs=inputs, outputs=OutputPath_1)
     model = Model(inputs=inputs, outputs=OutputPath)
     return model
 
 
 def model_fcnn_pre(num_classes, input_shape, num_filters, wd):
-    fcnn = model_fcnn(12, input_shape=[128, None, 1], num_filters=[24, 48, 96], wd=0)
+    _, fcnn = model_fcnn(512, input_shape=[128, None, 1], num_filters=[24, 48, 96], wd=0)
     print('loading GSC pre-trained weight')
-    weights_path = 'weight_limit100/gsc97-0.9231.hdf5'
+    #weights_path = 'weight/gsc97-0.9231.hdf5'
+    weights_path = 'weight/weight_full_mobile_limit400_seed0_audioset/full/12class/best.hdf5'
     fcnn.load_weights(weights_path)
     #model.add(Dense(num_classes, input_shape=(12,)))
     model = models.Sequential()
@@ -339,4 +342,194 @@ def model_mic_music(model_mic, model_music):
     #tensorflow.keras.utils.plot_model(model, to_file='model.png', show_shapes=True, show_dtype=True)
     #model.compile(loss=losses.MSE)
     #model.summary()
+    return model
+
+
+def model_dann(num_classes, input_shape=None, num_filters=[24, 48, 96], wd=1e-3):
+    inputs = Input(shape=(48000,))
+    x = Reshape((1,-1))(inputs)
+
+    # Audio feature extraction layer
+    m = Melspectrogram(n_dft=1024, n_hop=128, input_shape=(1,),
+                    padding='same', sr=16000, n_mels=128,
+                    fmin=40.0, fmax=8000, power_melgram=1.0,
+                    return_decibel_melgram=True, trainable_fb=False,
+                    trainable_kernel=False,
+                    name='mel_stft')
+    m.trainable = False
+
+    x = m(x)
+    x = Normalization2D(int_axis=0, name='mel_stft_norm')(x)
+
+    ConvPath1 = conv_layer1(inputs=x,
+                            num_channels=input_shape[-1],
+                            num_filters=num_filters[0],
+                            learn_bn=True,
+                            wd=wd,
+                            use_relu=True)
+    ConvPath2 = conv_layer2(inputs=ConvPath1,
+                            num_channels=input_shape[-1],
+                            num_filters=num_filters[1],
+                            learn_bn=True,
+                            wd=wd,
+                            use_relu=True)
+    ConvPath3 = conv_layer3(inputs=ConvPath2,
+                            num_channels=input_shape[-1],
+                            num_filters=num_filters[2],
+                            learn_bn=True,
+                            wd=wd,
+                            use_relu=True)
+
+    feat_emb = ConvPath3
+
+    source_classifier = resnet_layer(inputs=feat_emb,
+                            num_filters=num_classes,
+                            strides=1,
+                            kernel_size=1,
+                            learn_bn=False,
+                            wd=wd,
+                            use_relu=True)
+
+    source_classifier = BatchNormalization(center=False, scale=False)(source_classifier)
+    source_classifier = channel_attention(source_classifier, ratio=2)
+
+
+    source_classifier = GlobalAveragePooling2D()(source_classifier)
+    source_classifier = Activation('softmax', name="mo")(source_classifier)
+
+
+    #domain class
+    domain_classifier = resnet_layer(inputs=feat_emb,
+                            num_filters=2,
+                            strides=1,
+                            kernel_size=1,
+                            learn_bn=False,
+                            wd=wd,
+                            use_relu=True)
+
+    domain_classifier = BatchNormalization(center=False, scale=False, name="do2")(domain_classifier)
+    domain_classifier = channel_attention_do(domain_classifier, ratio=2)
+
+
+    domain_classifier = GlobalAveragePooling2D(name="do4")(domain_classifier)
+    domain_classifier = Activation('softmax', name="do")(domain_classifier)
+
+
+    model = Model(inputs=inputs, outputs=[source_classifier, domain_classifier])
+    source_classification_model = Model(inputs=inputs, outputs=[source_classifier])
+    domain_classification_model = Model(inputs=inputs, outputs=[domain_classifier])
+    embeddings_model = Model(inputs=inputs, outputs=[feat_emb])
+
+
+    return model, source_classification_model, domain_classification_model, embeddings_model
+
+
+def model_fcnn_Prelogits(num_classes, input_shape=None, num_filters=[24, 48, 96], wd=1e-3):
+    inputs = Input(shape=(48000,))
+    x = Reshape((1,-1))(inputs)
+
+    # Audio feature extraction layer
+    m = Melspectrogram(n_dft=1024, n_hop=128, input_shape=(1,),
+                       padding='same', sr=16000, n_mels=128,
+                       fmin=40.0, fmax=8000, power_melgram=1.0,
+                       return_decibel_melgram=True, trainable_fb=False,
+                       trainable_kernel=False,
+                       name='mel_stft')
+    m.trainable = False
+
+    x = m(x)
+    x = Normalization2D(int_axis=0, name='mel_stft_norm')(x)
+
+    ConvPath1 = conv_layer1(inputs=x,
+                            num_channels=input_shape[-1],
+                            num_filters=num_filters[0],
+                            learn_bn=True,
+                            wd=wd,
+                            use_relu=True)
+    ConvPath2 = conv_layer2(inputs=ConvPath1,
+                            num_channels=input_shape[-1],
+                            num_filters=num_filters[1],
+                            learn_bn=True,
+                            wd=wd,
+                            use_relu=True)
+    ConvPath3 = conv_layer3(inputs=ConvPath2,
+                            num_channels=input_shape[-1],
+                            num_filters=num_filters[2],
+                            learn_bn=True,
+                            wd=wd,
+                            use_relu=True)
+    OutputPath = resnet_layer(inputs=ConvPath3,
+                              num_filters=num_classes,
+                              strides=1,
+                              kernel_size=1,
+                              learn_bn=False,
+                              wd=wd,
+                              use_relu=True)
+
+    OutputPath = BatchNormalization(center=False, scale=False)(OutputPath)
+    OutputPath = channel_attention(OutputPath, ratio=2)
+    Prelogits = GlobalAveragePooling2D()(OutputPath)
+    OutputPath = Activation('softmax')(Prelogits)
+
+    model = Model(inputs=inputs, outputs=Prelogits)
+    return model
+
+
+def model_fcnn_specaug(num_classes, input_shape=None, num_filters=[24, 48, 96], wd=1e-3, mask_prob=0.2):
+    inputs = Input(shape=(48000,))
+    x = Reshape((1,-1))(inputs)
+
+    # Audio feature extraction layer
+    m = Melspectrogram(n_dft=1024, n_hop=128, input_shape=(1,),
+                    padding='same', sr=16000, n_mels=128,
+                    fmin=40.0, fmax=8000, power_melgram=1.0,
+                    return_decibel_melgram=True, trainable_fb=False,
+                    trainable_kernel=False,
+                    name='mel_stft')
+    m.trainable = False
+
+    x = m(x)
+    x = Normalization2D(int_axis=0, name='mel_stft_norm')(x)
+
+    # Apply SpecAugment transform to the spectrograms
+    spec_augment = A.Compose([
+        A.FrequencyMask(p=mask_prob),
+        A.TimeMask(p=mask_prob)
+    ])
+    x = keras.layers.Lambda(lambda spec: spec_augment(spec) if keras.backend.learning_phase() else spec,
+                            name='spec_augment')(x)
+
+    ConvPath1 = conv_layer1(inputs=x,
+                            num_channels=input_shape[-1],
+                            num_filters=num_filters[0],
+                            learn_bn=True,
+                            wd=wd,
+                            use_relu=True)
+    ConvPath2 = conv_layer2(inputs=ConvPath1,
+                            num_channels=input_shape[-1],
+                            num_filters=num_filters[1],
+                            learn_bn=True,
+                            wd=wd,
+                            use_relu=True)
+    ConvPath3 = conv_layer3(inputs=ConvPath2,
+                            num_channels=input_shape[-1],
+                            num_filters=num_filters[2],
+                            learn_bn=True,
+                            wd=wd,
+                            use_relu=True)
+    OutputPath = resnet_layer(inputs=ConvPath3,
+                            num_filters=num_classes,
+                            strides=1,
+                            kernel_size=1,
+                            learn_bn=False,
+                            wd=wd,
+                            use_relu=True)
+
+    OutputPath = BatchNormalization(center=False, scale=False)(OutputPath)
+    OutputPath = channel_attention(OutputPath, ratio=2)
+    OutputPath_1 = GlobalAveragePooling2D()(OutputPath)
+    OutputPath = Activation('softmax')(OutputPath_1)
+
+    #model_lat = Model(inputs=inputs, outputs=OutputPath_1)
+    model = Model(inputs=inputs, outputs=OutputPath)
     return model
