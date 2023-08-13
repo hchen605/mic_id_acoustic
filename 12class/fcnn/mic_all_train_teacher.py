@@ -13,7 +13,7 @@ from funcs import *
 
 from ts_dataloader import *
 from models.small_fcnn_att import model_fcnn, model_fcnn_specaug
-from models.xvector import model_xvector
+#from models.xvector import model_xvector
 
 from tensorflow.compat.v1 import ConfigProto, InteractiveSession
 
@@ -73,8 +73,8 @@ else:
     classes_test = classes_12
 
 
-train_csv = '../data/test_mic_dist_full.csv'
-dev_csv = '../data/test_mic_dist_full.csv'
+train_csv = '../data/test_mic_unseen_full.csv'
+dev_csv = '../data/test_mic_unseen_full.csv'
 #dev_csv = '../data/dev_mic_18class_5m_7m_9m_rir.csv'
 train_csv_labeled = '../data/train_mic_18class_5m_7m_9m_rir_0p66_clo.csv'
 dev_csv_labeled = '../data/dev_mic_18class_5m_7m_9m_rir_0p66_clo.csv'

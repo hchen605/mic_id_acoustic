@@ -13,8 +13,8 @@ from funcs import *
 
 from ts_dataloader import *
 from models.small_fcnn_att import model_fcnn, model_fcnn_pre
-from models.xvector import model_xvector
-from models.attRNN import AttRNN, AttRNN_pre
+#
+#from models.attRNN import AttRNN, AttRNN_pre
 
 from tensorflow.compat.v1 import ConfigProto, InteractiveSession
 
