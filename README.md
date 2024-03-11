@@ -1,5 +1,7 @@
 # mic_id_acoustic
 
+Microphone classification is one of the active topic in audio processing and engineering society. It addresses the challenge of identifying the microphone signature from the recorded signal. However, there is no unified dataset and mostly lost the generalization over microphone types in previous research. Thus, the finding shows limitation and can only fit to certain scenarios. On the other hand, although the audio content analysis is a popular and active research topic along with the advance of machine learning (ML) and deep learning (DL) techniques, few research focus on how recorder characteristics could impact the performance of model classification. To support our targets, three tasks are selected to address the characteristics of the collected dataset. Firstly, DL-based models are applied to verify the microphone classification performance with both the 3-classes classifier and 18-classes microphone classifiers analyzed. Furthermore, room size and distance prediction on top of the microphone recordings are evaluated with two advanced acoustic models to give comprehensive review. At last, unseen device and unseen room data are evaluated with various approaches. Teacher-student framework are proposed to enhance the accuracy over the degradation by unseen data. 
+
 ## Docker env setup
 
 #### Step 1: build docker environment
